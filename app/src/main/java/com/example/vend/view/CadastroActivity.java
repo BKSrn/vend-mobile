@@ -19,6 +19,7 @@ import com.example.vend.dto.UsuarioClienteCadastrarDTO;
 import com.example.vend.network.ApiClient;
 import com.example.vend.network.UsuarioClienteApiService;
 
+import okhttp3.ResponseBody;
 import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
@@ -87,27 +88,47 @@ public class CadastroActivity extends AppCompatActivity {
         UsuarioClienteCadastrarDTO dto = new UsuarioClienteCadastrarDTO(email, senha);
 
         // Fazer requisição
-        Call<String> call = apiService.cadastrarUsuario(dto);
+        Call<ResponseBody> call = apiService.cadastrarUsuario(dto);
 
-        call.enqueue(new Callback<String>() {
+        Log.d(TAG, "Iniciando cadastro para: " + email);
+
+        call.enqueue(new Callback<ResponseBody>() {
             @Override
-            public void onResponse(@NonNull Call<String> call, @NonNull Response<String> response) {
+            public void onResponse(@NonNull Call<ResponseBody> call,
+                                   @NonNull Response<ResponseBody> response) {
                 setLoading(false);
 
+                Log.d(TAG, "Response code: " + response.code());
+
                 if (response.isSuccessful()) {
-                    // Cadastro realizado com sucesso
-                    String mensagem = response.body();
-                    Log.d(TAG, "Cadastro bem-sucedido: " + mensagem);
+                    try {
+                        // Ler a resposta como String
+                        String mensagem = "";
+                        if (response.body() != null) {
+                            mensagem = response.body().string();
+                            Log.d(TAG, "Mensagem do servidor: " + mensagem);
+                        }
 
-                    Toast.makeText(CadastroActivity.this,
-                            "Cadastro realizado com sucesso!",
-                            Toast.LENGTH_SHORT).show();
+                        // Cadastro realizado com sucesso
+                        Toast.makeText(CadastroActivity.this,
+                                "Cadastro realizado com sucesso!",
+                                Toast.LENGTH_SHORT).show();
 
-                    // Voltar para login ou ir direto para catálogo
-                    Intent intent = new Intent(CadastroActivity.this, LoginActivity.class);
-                    intent.putExtra("email_cadastrado", email);
-                    startActivity(intent);
-                    finish();
+                        // Voltar para login com o email preenchido
+                        Intent intent = new Intent(CadastroActivity.this, LoginActivity.class);
+                        intent.putExtra("email_cadastrado", email);
+                        startActivity(intent);
+                        finish();
+
+                    } catch (Exception e) {
+                        Log.e(TAG, "Erro ao ler resposta: " + e.getMessage(), e);
+                        Toast.makeText(CadastroActivity.this,
+                                "Cadastro realizado, mas houve erro ao processar resposta",
+                                Toast.LENGTH_SHORT).show();
+
+                        // Mesmo com erro ao ler resposta, volta para login
+                        finish();
+                    }
 
                 } else {
                     // Erro no cadastro
@@ -120,20 +141,29 @@ public class CadastroActivity extends AppCompatActivity {
                             erro += "Código " + response.code();
                         }
                     } catch (Exception e) {
-                        erro += response.code();
+                        erro += "Código " + response.code();
                     }
 
                     Log.e(TAG, erro);
-                    Toast.makeText(CadastroActivity.this, erro, Toast.LENGTH_LONG).show();
+
+                    // Verificar se é email duplicado
+                    if (response.code() == 400 && erro.contains("já foi cadastrado")) {
+                        Toast.makeText(CadastroActivity.this,
+                                "Este email já está cadastrado!",
+                                Toast.LENGTH_LONG).show();
+                    } else {
+                        Toast.makeText(CadastroActivity.this, erro, Toast.LENGTH_LONG).show();
+                    }
                 }
             }
 
             @Override
-            public void onFailure(@NonNull Call<String> call, @NonNull Throwable t) {
+            public void onFailure(@NonNull Call<ResponseBody> call, @NonNull Throwable t) {
                 setLoading(false);
 
                 String erro = "Falha na conexão: " + t.getMessage();
                 Log.e(TAG, erro, t);
+
                 Toast.makeText(CadastroActivity.this,
                         "Erro ao conectar com o servidor. Verifique sua conexão.",
                         Toast.LENGTH_LONG).show();

@@ -4,8 +4,10 @@ import com.example.vend.dto.UsuarioClienteCadastrarDTO;
 import com.example.vend.dto.UsuarioClienteLoginDTO;
 import com.example.vend.dto.UsuarioClienteResponseDTO;
 
+import okhttp3.ResponseBody;
 import retrofit2.Call;
 import retrofit2.http.Body;
+import retrofit2.http.Headers;
 import retrofit2.http.POST;
 
 /**
@@ -22,7 +24,8 @@ public interface UsuarioClienteApiService {
      * @return Mensagem de sucesso
      */
     @POST("usuariosCliente/cadastro")
-    Call<String> cadastrarUsuario(@Body UsuarioClienteCadastrarDTO dto);
+    @Headers("Accept: text/plain")
+    Call<ResponseBody> cadastrarUsuario(@Body UsuarioClienteCadastrarDTO dto);
 
     /**
      * Realiza login do usuário cliente
